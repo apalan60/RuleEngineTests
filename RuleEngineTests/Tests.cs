@@ -4,76 +4,115 @@ using System.Threading.Tasks;
 using NUnit.Framework;
 using FluentAssertions;
 using System.Text.Json;
+using InvalidOperationException = System.InvalidOperationException;
 
 namespace RuleEngineTests;
 
 public class ConditionExpressionTest
 {
-    [SetUp]
-    public async Task Setup()
+    //可視需求擴增新增運算子、參數型別
+    //目前假設情境為請假，傳入參數為請假天數 ，測試型別皆為Int
+    
+    private readonly Dictionary<string, Func<int, int, bool>> _operators = new()
     {
+        { "$lte", (dataValue, threshold) => dataValue <= threshold},
+        { "$lt", (dataValue, threshold) => dataValue < threshold },
+        { "$eq", (dataValue, threshold) => dataValue == threshold },
+        { "$gt", (dataValue, threshold) => dataValue > threshold },
+        { "$gte",(dataValue, threshold) => dataValue >= threshold },
+        { "$ne", (dataValue, threshold) => dataValue != threshold }
+    };
+    
+    [SetUp]
+    public Task Setup()
+    {
+        return Task.CompletedTask;
     }
 
     //conditionExpression = "{'LeaveDay': {'$lt': 5}}"
-    //Object1 : Condition(e.g 請假、公出...etc) =>  Property: LeaveDay , Value: {'$lt': 2}
-    //Object2 : Operator (e.g. $eq, $lt)      =>  Property: $lte ,     Value(Threshold): 2
-
+    //Object1 : Condition(e.g 請假、公出...etc) =>  Property: LeaveDay( 各種情境 e.g. 'F0001'...etc) , Value: {'$lt': 2}
+    //Object2 : Operator (e.g. $eq, $lt)      =>  Property: $lte , Value(Threshold): 2
     
     [Test]
-    public async Task 案例_請假天數為3天_判斷其是否小於等於5天_傳回True()
+    public Task 案例_請假天數為3天_是否小於等於5天_傳回True()
     {
-        string conditionExpression = "{'LeaveDay': {'$lte': 5}}";
-        string standardJson = ConvertToStandardJson(conditionExpression);
+        string conditionExpression = ConvertToStandardJson("{'LeaveDay': {'$lte': 5}}");
         
-        Dictionary<string, object> data = new Dictionary<string, object>
+        Dictionary<string, object> data = new()
         {
             { "LeaveDay", 3 }
         };
-        var result = EvaluateCondition(standardJson, data);
+        
+        var result = EvaluateCondition(conditionExpression, data);
         result.Should().BeTrue();
+        return Task.CompletedTask;
     }
     
     [Test]
-    public async Task 案例_請假天數為3天_判斷其是否小於等於2天_傳回False()
+    public Task 案例_請假天數為3天_是否小於等於2天_傳回False()
     {
-        string conditionExpression = "{'LeaveDay': {'$lte': 2}}"; 
-        string standardJson = ConvertToStandardJson(conditionExpression);
+        string conditionExpression = ConvertToStandardJson("{'LeaveDay': {'$lte': 2}}"); 
         
-        Dictionary<string, object> data = new Dictionary<string, object>
+        Dictionary<string, object> data = new()
         {
             { "LeaveDay", 3 }
         };
-        var result = EvaluateCondition(standardJson, data);
+        var result = EvaluateCondition(conditionExpression, data);
         result.Should().BeFalse();
+        return Task.CompletedTask;
     }
-
+    
+    [Test]
+    public Task 案例_請假天數為6天_是否大於5天_傳回True()
+    {
+        string conditionExpression = ConvertToStandardJson("{'LeaveDay': {'$gt': 5}}");
+    
+        Dictionary<string, object> data = new()
+        {
+            { "LeaveDay", 6 }
+        };
+        
+        var result = EvaluateCondition(conditionExpression, data);
+        result.Should().BeTrue();
+        return Task.CompletedTask;
+    }
+    
+    [Test]
+    public Task 案例_請假天數為6天_是否等於6天_傳回True()
+    {
+        string conditionExpression = ConvertToStandardJson("{'LeaveDay': {'$eq': 6}}");
+    
+        Dictionary<string, object> data = new()
+        {
+            { "LeaveDay", 6 }
+        };
+        
+        var result = EvaluateCondition(conditionExpression, data);
+        result.Should().BeTrue();
+        return Task.CompletedTask;
+    }
     
     private bool EvaluateCondition(string conditionExpression, Dictionary<string, object> data)
     {
-        using JsonDocument document = JsonDocument.Parse(conditionExpression);
-        foreach (var condition in document.RootElement.EnumerateObject())
+        using JsonDocument conditionJson = JsonDocument.Parse(conditionExpression);
+        foreach (var condition in conditionJson.RootElement.EnumerateObject())
         {
-            if (!GetValueIfConditionMatches(data, condition, out var threshold)) break; 
-         
-            //目前假設情境為請假，傳入參數為請假天數 ，測試型別皆為Int
-            var dataValue = Convert.ToInt32(threshold);
-            foreach (var op in condition.Value.EnumerateObject()) 
+            foreach (var op in condition.Value.EnumerateObject())
             {
-                if (op.Name == "$lte")
+                if (_operators.ContainsKey(op.Name))
                 {
-                    return dataValue <=　op.Value.GetInt32();
+                    string operatorType = op.Name;
+                    int dataValue = (int)data[condition.Name];
+                    int threshold = op.Value.GetInt32();
+                    return _operators[operatorType](dataValue, threshold);
                 }
             }
         }
-
+        
         throw new InvalidOperationException();
     }
 
-    private static bool GetValueIfConditionMatches(Dictionary<string, object> data, JsonProperty condition, out object threshold)
-    {
-        return data.TryGetValue(condition.Name, out threshold);
-    }
-
+    
     private string ConvertToStandardJson(string input)
     {
         return input.Replace("'", "\"");
