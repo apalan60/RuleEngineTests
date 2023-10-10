@@ -15,14 +15,14 @@ public class ConditionExpressionTest
     }
 
     //conditionExpression = "{'LeaveDay': {'$lt': 5}}"
-    //Object1 => LeaveDay : Property , {'$lt': 2} : Value
-    //Object2 => $lt : Property(Operator) , 2 : Value
+    //Object1 : Condition(e.g 請假、公出...etc) =>  Property: LeaveDay , Value: {'$lt': 2}
+    //Object2 : Operator (e.g. $eq, $lt)      =>  Property: $lte ,     Value(Threshold): 2
 
     
     [Test]
-    public async Task 案例_F001值為3_判斷其是否小於5_傳回True()
+    public async Task 案例_請假天數為3天_判斷其是否小於等於5天_傳回True()
     {
-        string conditionExpression = "{'LeaveDay': {'$lt': 5}}";
+        string conditionExpression = "{'LeaveDay': {'$lte': 5}}";
         string standardJson = ConvertToStandardJson(conditionExpression);
         
         Dictionary<string, object> data = new Dictionary<string, object>
@@ -34,9 +34,9 @@ public class ConditionExpressionTest
     }
     
     [Test]
-    public async Task 案例_F001值為3_判斷其是否小2_傳回False()
+    public async Task 案例_請假天數為3天_判斷其是否小於等於2天_傳回False()
     {
-        string conditionExpression = "{'LeaveDay': {'$lt': 2}}"; 
+        string conditionExpression = "{'LeaveDay': {'$lte': 2}}"; 
         string standardJson = ConvertToStandardJson(conditionExpression);
         
         Dictionary<string, object> data = new Dictionary<string, object>
@@ -50,28 +50,30 @@ public class ConditionExpressionTest
     
     private bool EvaluateCondition(string conditionExpression, Dictionary<string, object> data)
     {
-        using (JsonDocument document = JsonDocument.Parse(conditionExpression)) 
+        using JsonDocument document = JsonDocument.Parse(conditionExpression);
+        foreach (var condition in document.RootElement.EnumerateObject())
         {
-            foreach (var condition in document.RootElement.EnumerateObject())
+            if (!GetValueIfConditionMatches(data, condition, out var threshold)) break; 
+         
+            //目前假設情境為請假，傳入參數為請假天數 ，測試型別皆為Int
+            var dataValue = Convert.ToInt32(threshold);
+            foreach (var op in condition.Value.EnumerateObject()) 
             {
-                string leaveDay = condition.Name;
-                if (!data.ContainsKey(leaveDay))  //目前只考慮傳入一支表達式，處理LeaveDay相關表達式
-                    return false;
-                int dataValue = Convert.ToInt32(data[leaveDay]);
-                
-                foreach (var op in condition.Value.EnumerateObject()) 
+                if (op.Name == "$lte")
                 {
-                    if (op.Name == "$lt")
-                    {
-                        return dataValue <　op.Value.GetInt32();
-                    }
+                    return dataValue <=　op.Value.GetInt32();
                 }
             }
         }
 
         throw new InvalidOperationException();
     }
-    
+
+    private static bool GetValueIfConditionMatches(Dictionary<string, object> data, JsonProperty condition, out object threshold)
+    {
+        return data.TryGetValue(condition.Name, out threshold);
+    }
+
     private string ConvertToStandardJson(string input)
     {
         return input.Replace("'", "\"");
