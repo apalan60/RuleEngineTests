@@ -8,6 +8,11 @@ using InvalidOperationException = System.InvalidOperationException;
 
 namespace RuleEngineTests;
 
+//表達式範例
+//conditionExpression = "{'LeaveDay': {'$lt': 5}}"
+//Object1 : Condition(e.g 請假、公出...etc) =>  Property: LeaveDay( 各種情境 e.g. 'F0001'...etc) , Value: {'$lt': 2}
+//Object2 : Operator (e.g. $eq, $lt)      =>  Property: $lte , Value(Threshold): 2
+
 public class ConditionExpressionTest
 {
     //可視需求擴增新增運算子、參數型別
@@ -29,10 +34,8 @@ public class ConditionExpressionTest
         return Task.CompletedTask;
     }
 
-    //conditionExpression = "{'LeaveDay': {'$lt': 5}}"
-    //Object1 : Condition(e.g 請假、公出...etc) =>  Property: LeaveDay( 各種情境 e.g. 'F0001'...etc) , Value: {'$lt': 2}
-    //Object2 : Operator (e.g. $eq, $lt)      =>  Property: $lte , Value(Threshold): 2
-    
+
+    #region Comparison Query Operators
     [Test]
     public Task 案例_請假天數為3天_是否小於等於5天_傳回True()
     {
@@ -91,6 +94,29 @@ public class ConditionExpressionTest
         result.Should().BeTrue();
         return Task.CompletedTask;
     }
+    #endregion
+
+    #region Logical Query Operators
+
+    [Test]
+    public Task 案例_請假天數為3天_是否小於等於5天且有請假權限()
+    {
+        //Todo => $and
+        return Task.CompletedTask;
+    }
+
+    #endregion
+    
+    #region Rule Pattern
+
+    [Test]
+    public Task 案例_如果情境為請假單_執行EvaluateCondition_如果情境為公出單_執行EvaluateCondition2()
+    {
+        //Todo
+        return Task.CompletedTask;
+    }
+
+    #endregion
     
     private bool EvaluateCondition(string conditionExpression, Dictionary<string, object> data)
     {
