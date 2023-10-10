@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuleEngineTests", "RuleEngineTests\RuleEngineTests.csproj", "{ADAEA687-4CE3-4426-A5DA-36E4C12B847C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{ADAEA687-4CE3-4426-A5DA-36E4C12B847C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ADAEA687-4CE3-4426-A5DA-36E4C12B847C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ADAEA687-4CE3-4426-A5DA-36E4C12B847C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ADAEA687-4CE3-4426-A5DA-36E4C12B847C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
